@@ -14,7 +14,9 @@ describe("AddEmployeeTransaction", () => {
       employees
     );
 
-    t.execute();
+    if (t.validate()) {
+      t.execute();
+    }
     let emp = new Employee("John", "Japan");
     emp.setPayClassification(salariedClassification);
     let employees2 = [emp];

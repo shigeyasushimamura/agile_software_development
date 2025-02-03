@@ -35,10 +35,6 @@ export class AddEmployeeTransaction implements ITransaction {
   }
 
   execute() {
-    if (!this.validate()) {
-      return;
-    }
-
     const newEmployee = new Employee(this.name, this.address);
     newEmployee.setPayClassification(this.payClassification);
 
