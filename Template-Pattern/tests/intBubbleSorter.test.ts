@@ -10,6 +10,6 @@ describe("intBubbleSorter", () => {
     const array = [5, 4, 3, 2, 1];
 
     const result = sorter.sort(array);
-    console.log("result:", result);
+    expect(result).toEqual([1, 2, 3, 4, 5]);
   });
 });
