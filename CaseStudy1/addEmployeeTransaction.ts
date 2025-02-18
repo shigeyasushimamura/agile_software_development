@@ -2,11 +2,13 @@ import { isModuleNamespaceObject } from "util/types";
 import {
   BiweeklySchedule,
   CommissionedClassification,
+  DirectMethod,
   Employee,
   HoldMehod,
   HourlyClassification,
   MonthlySchedule,
   PaymentClassification,
+  PaymentMethod,
   PaymentSchedle,
   SalariedClassification,
   SalesReceipt,
@@ -316,5 +318,31 @@ export class ChangeCommissionedTransaction extends ChangeClassificationTransacti
 
   getSchedule(): PaymentSchedle {
     return new BiweeklySchedule();
+  }
+}
+
+export abstract class ChangeMethodTransaction extends ChangeEmployeeTransaction {
+  constructor(empId: number) {
+    super(empId);
+  }
+
+  change(e: Employee): void {
+    e.setPaymentMethod(this.getMethod());
+  }
+
+  abstract getMethod(): PaymentMethod;
+}
+
+export class ChangeDirectTransaction extends ChangeMethodTransaction {
+  itsBankId: number;
+  itsAccountId: number;
+
+  constructor(empId: number, bankId: number, accountId: number) {
+    super(empId);
+    this.itsBankId = bankId;
+    this.itsAccountId = accountId;
+  }
+  getMethod() {
+    return new DirectMethod(this.itsBankId, this.itsAccountId);
   }
 }

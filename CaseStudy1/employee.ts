@@ -172,10 +172,26 @@ export class WeeklySchedule implements PaymentSchedle {
   }
 }
 
-export interface PaymentMethod {}
+export interface PaymentMethod {
+  send(): void;
+}
 
-export class HoldMehod implements PaymentMethod {}
+export class HoldMehod implements PaymentMethod {
+  send(): void {}
+}
 
-export class DirectMethod implements PaymentMethod {}
+export class DirectMethod implements PaymentMethod {
+  private bankId: number;
+  private accountId: number;
 
-export class MailMethod implements PaymentMethod {}
+  constructor(bankId: number, accountId: number) {
+    this.bankId = bankId;
+    this.accountId = accountId;
+  }
+
+  send(): void {}
+}
+
+export class MailMethod implements PaymentMethod {
+  send(): void {}
+}
