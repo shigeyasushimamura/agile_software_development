@@ -254,3 +254,67 @@ export class ChangeNameTransaction extends ChangeEmployeeTransaction {
     // todo: もしインメモリDBからrdbなど永続DBに変更する場合は、repositoryパターンを利用して、dbへの処理を抽象化する
   }
 }
+
+export abstract class ChangeClassificationTransaction extends ChangeEmployeeTransaction {
+  constructor(empId: number) {
+    super(empId);
+  }
+  change(e: Employee): void {
+    e.setPaymentClassification(this.getClassification());
+    e.setPaymentSchedule(this.getSchedule());
+  }
+
+  abstract getSchedule(): PaymentSchedle;
+
+  abstract getClassification(): PaymentClassification;
+}
+
+export class ChangeHourlyTransaction extends ChangeClassificationTransaction {
+  card: TimeCard;
+  constructor(empId: number, card: TimeCard) {
+    super(empId);
+    this.card = card;
+  }
+
+  getSchedule(): PaymentSchedle {
+    return new WeeklySchedule();
+  }
+
+  getClassification(): PaymentClassification {
+    return new HourlyClassification([this.card]);
+  }
+}
+
+export class ChangeSalariedTransaction extends ChangeClassificationTransaction {
+  itsSalary: number;
+
+  constructor(empId: number, salary: number) {
+    super(empId);
+    this.itsSalary = salary;
+  }
+
+  getSchedule(): PaymentSchedle {
+    return new MonthlySchedule();
+  }
+
+  getClassification(): PaymentClassification {
+    return new SalariedClassification(this.itsSalary);
+  }
+}
+
+export class ChangeCommissionedTransaction extends ChangeClassificationTransaction {
+  receipt: SalesReceipt;
+
+  constructor(empId: number, receipt: SalesReceipt) {
+    super(empId);
+    this.receipt = receipt;
+  }
+
+  getClassification(): PaymentClassification {
+    return new CommissionedClassification([this.receipt]);
+  }
+
+  getSchedule(): PaymentSchedle {
+    return new BiweeklySchedule();
+  }
+}

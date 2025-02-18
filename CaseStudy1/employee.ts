@@ -156,19 +156,19 @@ export interface PaymentSchedle {
 
 export class MonthlySchedule implements PaymentSchedle {
   calculateSchedule(): number {
-    return 0;
+    return 160;
   }
 }
 
 export class BiweeklySchedule implements PaymentSchedle {
   calculateSchedule(): number {
-    return 0;
+    return 14;
   }
 }
 
 export class WeeklySchedule implements PaymentSchedle {
   calculateSchedule(): number {
-    return 0;
+    return 100;
   }
 }
 

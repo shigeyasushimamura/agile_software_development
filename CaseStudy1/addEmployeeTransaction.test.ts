@@ -4,7 +4,11 @@ import {
   AddEmployeeTransaction,
   AddHourlyEmployee,
   AddSalariedEmployee,
+  ChangeClassificationTransaction,
+  ChangeCommissionedTransaction,
+  ChangeHourlyTransaction,
   ChangeNameTransaction,
+  ChangeSalariedTransaction,
   SalesReceiptTransaction,
   ServiceChargeTransaction,
   TimeCardTransaction,
@@ -167,5 +171,62 @@ describe("test add employee transaction", () => {
 
     expect(e).not.null;
     expect(e?.getName()).toEqual("Ann");
+  });
+
+  it("testChangeHourlyTransaction", () => {
+    const empId = 8;
+    const tx = new AddCommissionedEmployee(empId, "Lance", "Home", []);
+    tx.execute();
+    // const cht = new ChangeHourlyTransaction(empId,[new TImecard(10,new Date())])
+    const cht = new ChangeHourlyTransaction(
+      empId,
+      new TimeCard(10, new Date())
+    );
+    cht.execute();
+
+    const emp = PayrollDatabase.getEmployee(empId);
+    const pc = emp?.getPaymentClassification();
+    const ps = emp?.getPaymentSchedule();
+    // console.log("pc", pc);
+    // console.log("ps", ps);
+    expect(pc?.calculatePay()).toEqual(1000 * 10);
+    expect(ps?.calculateSchedule()).toEqual(100);
+  });
+
+  it("testChangeSalariedTransaction", () => {
+    const empId = 8;
+    const tx = new AddCommissionedEmployee(empId, "Lance", "Home", []);
+    tx.execute();
+    // const cht = new ChangeHourlyTransaction(empId,[new TImecard(10,new Date())])
+    const cht = new ChangeSalariedTransaction(empId, 555555);
+    cht.execute();
+
+    const emp = PayrollDatabase.getEmployee(empId);
+    const pc = emp?.getPaymentClassification();
+    const ps = emp?.getPaymentSchedule();
+    // console.log("pc", pc);
+    // console.log("ps", ps);
+    expect(pc?.calculatePay()).toEqual(555555);
+    expect(ps?.calculateSchedule()).toEqual(160);
+  });
+
+  it("testChangeSalariedTransaction", () => {
+    const empId = 8;
+    const tx = new AddSalariedEmployee(empId, "Lance", "Home", 10000);
+    tx.execute();
+    // const cht = new ChangeHourlyTransaction(empId,[new TImecard(10,new Date())])
+    const cht = new ChangeCommissionedTransaction(
+      empId,
+      new SalesReceipt(100, new Date())
+    );
+    cht.execute();
+
+    const emp = PayrollDatabase.getEmployee(empId);
+    const pc = emp?.getPaymentClassification();
+    const ps = emp?.getPaymentSchedule();
+    // console.log("pc", pc);
+    // console.log("ps", ps);
+    expect(pc?.calculatePay()).toEqual(200100);
+    expect(ps?.calculateSchedule()).toEqual(14);
   });
 });
