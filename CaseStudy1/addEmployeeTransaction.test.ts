@@ -6,9 +6,17 @@ import {
   AddSalariedEmployee,
   ChangeClassificationTransaction,
   ChangeCommissionedTransaction,
+  ChangeDirectTransaction,
+  ChangeHoldTransaction,
   ChangeHourlyTransaction,
+  ChangeMailTransaction,
+  ChangeMemberTransaction,
+  ChangeMethodTransaction,
   ChangeNameTransaction,
   ChangeSalariedTransaction,
+  ChangeUnaffiliciatedTransaction,
+  NoAffiliciation,
+  PaydayTransaction,
   SalesReceiptTransaction,
   ServiceChargeTransaction,
   TimeCardTransaction,
@@ -142,18 +150,19 @@ describe("test add employee transaction", () => {
     ttx.execute();
 
     const e = PayrollDatabase.getEmployee(empId);
-    const af = new UnionAffiliciation();
-    e?.setAffiliciation(af);
     const memberId = 111;
+    const af = new UnionAffiliciation(memberId);
+    e?.setAffiliciation(af);
+
     if (e instanceof Employee) {
       PayrollDatabase.addUnionMember(memberId, e);
     }
-
-    const sct = new ServiceChargeTransaction(memberId, 20250218, 100);
+    const td = new Date(2025, 2, 18);
+    const sct = new ServiceChargeTransaction(memberId, td, 100);
     sct.execute();
 
-    const sc = af.getServiceCharge(20250218);
-    // console.log("sc:", sc);
+    const sc = af.getServiceCharge(td);
+
     expect(sc).toEqual(100);
   });
 
@@ -190,7 +199,10 @@ describe("test add employee transaction", () => {
     // console.log("pc", pc);
     // console.log("ps", ps);
     expect(pc?.calculatePay()).toEqual(1000 * 10);
-    expect(ps?.calculateSchedule()).toEqual(100);
+
+    // console.log("emp", emp);
+    // console.log("ps", ps?.isPayday(new Date()));
+    expect(ps?.isPayday(new Date())).toEqual(expect.any(Boolean));
   });
 
   it("testChangeSalariedTransaction", () => {
@@ -207,7 +219,7 @@ describe("test add employee transaction", () => {
     // console.log("pc", pc);
     // console.log("ps", ps);
     expect(pc?.calculatePay()).toEqual(555555);
-    expect(ps?.calculateSchedule()).toEqual(160);
+    expect(ps?.isPayday(new Date())).toEqual(expect.any(Boolean));
   });
 
   it("testChangeSalariedTransaction", () => {
@@ -227,6 +239,112 @@ describe("test add employee transaction", () => {
     // console.log("pc", pc);
     // console.log("ps", ps);
     expect(pc?.calculatePay()).toEqual(200100);
-    expect(ps?.calculateSchedule()).toEqual(14);
+    expect(ps?.isPayday(new Date())).toEqual(expect.any(Boolean));
+  });
+
+  it("testChangeSalariedTransaction", () => {
+    const empId = 8;
+    const tx = new AddSalariedEmployee(empId, "Lance", "Home", 10000);
+    tx.execute();
+
+    const cdt = new ChangeDirectTransaction(empId, 1, 111111);
+    cdt.execute();
+
+    const emp = PayrollDatabase.getEmployee(empId);
+    const pm = emp?.getPaymentMehotd();
+
+    expect(pm?.send()).toEqual(true);
+  });
+
+  it("testChangeMailTransaction", () => {
+    const empId = 8;
+    const tx = new AddSalariedEmployee(empId, "Lance", "Home", 10000);
+    tx.execute();
+
+    const cdt = new ChangeMailTransaction(empId, "kyoto");
+    cdt.execute();
+
+    const emp = PayrollDatabase.getEmployee(empId);
+    const pm = emp?.getPaymentMehotd();
+
+    expect(pm?.send()).toEqual(true);
+  });
+
+  it("testChangeHoldTransaction", () => {
+    const empId = 8;
+    const tx = new AddSalariedEmployee(empId, "Lance", "Home", 10000);
+    tx.execute();
+
+    const cdt = new ChangeHoldTransaction(empId, "kyoto");
+    cdt.execute();
+
+    const emp = PayrollDatabase.getEmployee(empId);
+    const pm = emp?.getPaymentMehotd();
+
+    expect(pm?.send()).toEqual(true);
+  });
+
+  it("testChangeMemberTransaction", () => {
+    const empId = 9;
+    const tx = new AddSalariedEmployee(empId, "Lance", "Home", 10000);
+    tx.execute();
+
+    const memberId = 101;
+    const cmt = new ChangeMemberTransaction(empId, memberId);
+    cmt.execute();
+
+    const emp = PayrollDatabase.getEmployee(empId);
+    const af = emp?.getAffiliciation();
+
+    // expect(af).toBeInstanceOf(UnionAffiliciation)
+    let mem = undefined;
+    if (af instanceof UnionAffiliciation) {
+      mem = af.getMemberId();
+    }
+
+    expect(mem).toEqual(memberId);
+  });
+
+  it("testChangeUnaffiliciationTransaction", () => {
+    const empId = 9;
+    const tx = new AddSalariedEmployee(empId, "Lance", "Home", 10000);
+    tx.execute();
+
+    const memberId = 101;
+    const cmt = new ChangeUnaffiliciatedTransaction(empId);
+    cmt.execute();
+
+    const emp = PayrollDatabase.getEmployee(empId);
+    const af = emp?.getAffiliciation();
+
+    expect(af).toBeInstanceOf(NoAffiliciation);
+  });
+
+  it("testPaySingleSalariedEmployee", () => {
+    const empId = 10;
+    const tx = new AddSalariedEmployee(empId, "Lanve", "home", 10000);
+    tx.execute();
+
+    const today = new Date(2025, 1, 28);
+    const pt = new PaydayTransaction(today);
+    pt.execute();
+
+    const pc = PayrollDatabase.getPaycheck(empId);
+    console.log("pc:", pc);
+    expect(pc?.getGrossPay()).toEqual(10000);
+  });
+
+  it("testPaySingleSalariedEmployee not payday", () => {
+    const empId = 10;
+    const tx = new AddSalariedEmployee(empId, "Lanve", "home", 10000);
+    tx.execute();
+
+    const today = new Date(2025, 1, 27);
+    const pt = new PaydayTransaction(today);
+    pt.execute();
+
+    const pc = PayrollDatabase.getPaycheck(empId);
+
+    expect(pc).toBeNull;
   });
 });

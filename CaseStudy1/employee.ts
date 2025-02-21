@@ -57,10 +57,77 @@ export class Employee {
   getPaymentSchedule() {
     return this.paymentSchedule;
   }
+
+  isPayday(date: Date) {
+    return this.paymentSchedule?.isPayday(date);
+  }
+
+  getPayPeriodStartDate(date: Date): Date | undefined {
+    return this.paymentSchedule?.getPayPeriodStartDate(date);
+  }
+
+  payday(pc: Paycheck): void {
+    const grossPay = this.paymentClassification?.calculatePay(pc) || 0;
+    const deduction = this.affiliciation?.calculateDeductions(pc) || 0;
+    const netPay = grossPay - deduction;
+
+    if (netPay <= 0) {
+      return;
+    }
+
+    pc.setGrossPay(grossPay);
+    pc.setDeductions(deduction);
+    pc.setNetPay(netPay);
+    this.paymentMethod?.send();
+  }
+}
+
+export class Paycheck {
+  private itsPeriodStartDate;
+  private itsPayday;
+  private grossPay = 0;
+  private duductions = 0;
+  private netPay = 0;
+
+  constructor(startDate: Date, payday: Date) {
+    this.itsPeriodStartDate = startDate;
+    this.itsPayday = payday;
+  }
+
+  getGrossPay() {
+    return this.grossPay;
+  }
+  setGrossPay(p: number) {
+    this.grossPay = p;
+  }
+
+  getDuductions() {
+    return this.getDuductions;
+  }
+
+  setDeductions(p: number) {
+    this.duductions = p;
+  }
+
+  getNetPay() {
+    return this.getNetPay;
+  }
+
+  setNetPay(p: number) {
+    this.netPay = p;
+  }
+
+  getPeriodStartDate() {
+    return this.itsPeriodStartDate;
+  }
+
+  getPayday() {
+    return this.itsPayday;
+  }
 }
 
 export interface PaymentClassification {
-  calculatePay(): number;
+  calculatePay(pc: Paycheck): number;
 }
 
 export class SalariedClassification implements PaymentClassification {
@@ -151,33 +218,81 @@ export class TimeCard {
 }
 
 export interface PaymentSchedle {
-  calculateSchedule(): number;
+  isPayday(date: Date): boolean;
+  getPayPeriodStartDate(date: Date): Date;
 }
 
 export class MonthlySchedule implements PaymentSchedle {
-  calculateSchedule(): number {
-    return 160;
+  isPayday(date: Date): boolean {
+    return this.isLastDayOfMonth(date);
+  }
+
+  isLastDayOfMonth(date: Date): boolean {
+    const nextDay = new Date(date);
+    nextDay.setDate(date.getDate() + 1);
+
+    return nextDay.getMonth() !== date.getMonth();
+  }
+
+  getPayPeriodStartDate(date: Date) {
+    const startDate = new Date(date);
+    startDate.setDate(1);
+    startDate.setHours(0, 0, 0, 0);
+    return startDate;
   }
 }
 
 export class BiweeklySchedule implements PaymentSchedle {
-  calculateSchedule(): number {
-    return 14;
+  isPayday(date: Date): boolean {
+    return this.isBiweek(date);
+  }
+  isBiweek(date: Date): boolean {
+    const day = date.getDate();
+    return day === 14 || day === 28;
+  }
+  getPayPeriodStartDate(date: Date) {
+    const startDate = new Date(date);
+    if (date.getDate() <= 14) {
+      startDate.setDate(1);
+    } else {
+      startDate.setDate(14);
+    }
+    startDate.setHours(0, 0, 0, 0);
+    return startDate;
   }
 }
 
 export class WeeklySchedule implements PaymentSchedle {
-  calculateSchedule(): number {
-    return 100;
+  isPayday(date: Date): boolean {
+    return this.isFriday(date);
+  }
+
+  isFriday(date: Date): boolean {
+    const friday = 5;
+    return date.getDay() === friday;
+  }
+  getPayPeriodStartDate(date: Date) {
+    const startDate = new Date(date);
+    const dayOfWeek = startDate.getDay();
+    const diffToMonday = (dayOfWeek + 6) % 7;
+    startDate.setDate(startDate.getDate() - diffToMonday);
+
+    return startDate;
   }
 }
 
 export interface PaymentMethod {
-  send(): void;
+  send(): boolean;
 }
 
 export class HoldMehod implements PaymentMethod {
-  send(): void {}
+  private address: string;
+  constructor(address: string) {
+    this.address = address;
+  }
+  send(): boolean {
+    return true;
+  }
 }
 
 export class DirectMethod implements PaymentMethod {
@@ -189,9 +304,17 @@ export class DirectMethod implements PaymentMethod {
     this.accountId = accountId;
   }
 
-  send(): void {}
+  send(): boolean {
+    return true;
+  }
 }
 
 export class MailMethod implements PaymentMethod {
-  send(): void {}
+  private address: string;
+  constructor(address: string) {
+    this.address = address;
+  }
+  send(): boolean {
+    return true;
+  }
 }

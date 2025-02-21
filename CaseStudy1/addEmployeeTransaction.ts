@@ -6,7 +6,9 @@ import {
   Employee,
   HoldMehod,
   HourlyClassification,
+  MailMethod,
   MonthlySchedule,
+  Paycheck,
   PaymentClassification,
   PaymentMethod,
   PaymentSchedle,
@@ -181,31 +183,68 @@ export class SalesReceiptTransaction {
 }
 
 export abstract class Affiliciation {
-  itsBillList = new Map<number, number>();
+  itsBillList = new Map<Date, number>();
 
   constructor() {}
 
-  getServiceCharge(date: number) {
+  getServiceCharge(date: Date) {
     return this.itsBillList.get(date);
   }
 
-  addServiceCharge(date: number, amount: number) {
+  addServiceCharge(date: Date, amount: number) {
     this.itsBillList.set(date, amount);
+  }
+
+  abstract calculateDeductions(pc: Paycheck): number | undefined;
+}
+
+export class NoAffiliciation extends Affiliciation {
+  getServiceCharge(date: Date): number | undefined {
+    return undefined;
+  }
+
+  addServiceCharge(date: Date, amount: number): void {}
+
+  calculateDeductions() {
+    return undefined;
   }
 }
 
+export class AffiliciationFactory {
+  static NULL: Affiliciation = new NoAffiliciation();
+}
+
 export class UnionAffiliciation extends Affiliciation {
-  constructor() {
+  private itsMemberId: number;
+  constructor(memberId: number) {
     super();
+    this.itsMemberId = memberId;
+  }
+
+  getMemberId() {
+    return this.itsMemberId;
+  }
+
+  calculateDeductions(pc: Paycheck): number | undefined {
+    const startDateMills = pc.getPeriodStartDate().getTime();
+    const paydayMills = pc.getPayday().getTime();
+
+    return Array.from(this.itsBillList.keys())
+      .filter((date) => {
+        console.log("date", date);
+        const dateMills = date.getTime();
+        return dateMills >= startDateMills && dateMills <= paydayMills;
+      })
+      .reduce((sum, date) => sum + (this.itsBillList.get(date) || 0), 0);
   }
 }
 
 export class ServiceChargeTransaction implements Transaction {
   itsEmpId: number;
-  itsDate: number;
+  itsDate: Date;
   itsAmount: number;
 
-  constructor(empId: number, date: number, amount: number) {
+  constructor(empId: number, date: Date, amount: number) {
     this.itsEmpId = empId;
     this.itsDate = date;
     this.itsAmount = amount;
@@ -344,5 +383,103 @@ export class ChangeDirectTransaction extends ChangeMethodTransaction {
   }
   getMethod() {
     return new DirectMethod(this.itsBankId, this.itsAccountId);
+  }
+}
+
+export class ChangeMailTransaction extends ChangeMethodTransaction {
+  itsAddress: string;
+
+  constructor(empId: number, address: string) {
+    super(empId);
+    this.itsAddress = address;
+  }
+
+  getMethod(): PaymentMethod {
+    return new MailMethod(this.itsAddress);
+  }
+}
+
+export class ChangeHoldTransaction extends ChangeMethodTransaction {
+  itsAddress: string;
+
+  constructor(empId: number, address: string) {
+    super(empId);
+    this.itsAddress = address;
+  }
+
+  getMethod(): PaymentMethod {
+    return new HoldMehod(this.itsAddress);
+  }
+}
+
+export abstract class ChangeAffiliciationTransaction extends ChangeEmployeeTransaction {
+  constructor(empId: number) {
+    super(empId);
+  }
+
+  change(e: Employee): void {
+    this.recordMembership(e);
+    e.setAffiliciation(this.getAffiliciation());
+  }
+
+  abstract recordMembership(e: Employee): void;
+  abstract getAffiliciation(): Affiliciation;
+}
+
+export class ChangeMemberTransaction extends ChangeAffiliciationTransaction {
+  private itsMemberId: number;
+
+  constructor(empId: number, memberId: number) {
+    super(empId);
+    this.itsMemberId = memberId;
+  }
+
+  recordMembership(e: Employee): void {
+    PayrollDatabase.addUnionMember(this.itsMemberId, e);
+  }
+
+  getAffiliciation(): Affiliciation {
+    return new UnionAffiliciation(this.itsMemberId);
+  }
+}
+
+export class ChangeUnaffiliciatedTransaction extends ChangeAffiliciationTransaction {
+  constructor(empId: number) {
+    super(empId);
+  }
+  getAffiliciation(): Affiliciation {
+    return AffiliciationFactory.NULL;
+  }
+  recordMembership(e: Employee): void {
+    const af = e.getAffiliciation();
+    if (af instanceof UnionAffiliciation) {
+      const memberId = af.getMemberId();
+      PayrollDatabase.deleteUnionMember(memberId);
+    }
+  }
+}
+
+export class PaydayTransaction implements Transaction {
+  private targetDate: Date;
+
+  constructor(date: Date) {
+    this.targetDate = date;
+  }
+
+  execute(): void {
+    const empIds = PayrollDatabase.getAllEmployeeIds();
+    for (const id of empIds) {
+      const e = PayrollDatabase.getEmployee(id);
+      // console.log("ispayda:", id, e?.isPayday(this.targetDate));
+      if (e?.isPayday(this.targetDate)) {
+        const pc = new Paycheck(
+          e.getPayPeriodStartDate(this.targetDate) ?? this.targetDate,
+          this.targetDate
+        );
+        // DB登録
+        PayrollDatabase.addPaycheck(id, pc);
+        e.payday(pc);
+      }
+    }
   }
 }

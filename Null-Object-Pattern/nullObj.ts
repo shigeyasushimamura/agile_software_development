@@ -31,7 +31,7 @@ export class Employee {
   pay(): void {}
 }
 
-export class NullEmployee implements Employee {
+export class NullEmployee extends Employee {
   isTimeToPay(payDate: Date): boolean {
     return false;
   }
