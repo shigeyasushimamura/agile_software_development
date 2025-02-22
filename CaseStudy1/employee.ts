@@ -182,6 +182,8 @@ export class SalesReceipt {
 export class HourlyClassification implements PaymentClassification {
   basePay = 1000;
   timecards: Array<TimeCard> = [];
+  WORKTIME = 8;
+  OVERWORKPAYRATIO = 1.25;
 
   constructor(cards: Array<TimeCard>) {
     this.timecards = cards;
@@ -196,11 +198,33 @@ export class HourlyClassification implements PaymentClassification {
   }
 
   calculatePay(): number {
-    const total = this.timecards.reduce(
-      (accu, cur) => accu + cur.getTime() * this.basePay,
-      0
-    );
+    console.log("start calculatePya");
+    console.log("timevard", this.timecards);
+    const total = this.timecards.reduce((accu, cur) => {
+      let c = 0;
+      console.log("timework:", cur.getTime());
+      if (!this.isOverwork(cur.getTime())) {
+        console.log("not overwork!");
+        c = cur.getTime() * this.basePay;
+      } else {
+        console.log("overwork!");
+        const ot = cur.getTime() - this.WORKTIME;
+        c =
+          this.WORKTIME * this.basePay +
+          ot * this.basePay * this.OVERWORKPAYRATIO;
+      }
+
+      return accu + c;
+    }, 0);
     return total;
+  }
+
+  isOverwork(time: number): boolean {
+    if (time < this.WORKTIME) {
+      return false;
+    } else {
+      return true;
+    }
   }
 }
 export class TimeCard {

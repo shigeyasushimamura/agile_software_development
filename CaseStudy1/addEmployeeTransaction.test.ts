@@ -1,4 +1,4 @@
-import { describe, vi, it, expect } from "vitest";
+import { describe, vi, it, expect, beforeEach } from "vitest";
 import {
   AddCommissionedEmployee,
   AddEmployeeTransaction,
@@ -36,6 +36,10 @@ import {
 } from "./employee.js";
 
 describe("test add employee transaction", () => {
+  beforeEach(() => {
+    PayrollDatabase.clear();
+  });
+
   it("add salaried employee", () => {
     const empId = 1;
     let tx = new AddSalariedEmployee(empId, "Bob", "tokyo", 1000);
@@ -61,13 +65,13 @@ describe("test add employee transaction", () => {
 
   it("add hourly employee", () => {
     const empId = 2;
-    const card1 = new TimeCard(10, new Date());
+    const card1 = new TimeCard(8, new Date());
     let tx = new AddHourlyEmployee(empId, "Bob", "tolyo", [card1]);
     tx.execute();
 
     const emp = PayrollDatabase.getEmployee(empId);
     console.log("emp:", emp);
-    expect(emp?.getPaymentClassification()?.calculatePay()).toEqual(10000);
+    expect(emp?.getPaymentClassification()?.calculatePay()).toEqual(8000);
 
     const pc = emp?.getPaymentClassification() as HourlyClassification;
     const card2 = new TimeCard(1, new Date());
@@ -75,7 +79,7 @@ describe("test add employee transaction", () => {
 
     emp?.setPaymentClassification(pc);
 
-    expect(emp?.getPaymentClassification()?.calculatePay()).toEqual(11000);
+    expect(emp?.getPaymentClassification()?.calculatePay()).toEqual(9000);
 
     // delete処理
     PayrollDatabase.deleteEmployee(empId);
@@ -187,10 +191,7 @@ describe("test add employee transaction", () => {
     const tx = new AddCommissionedEmployee(empId, "Lance", "Home", []);
     tx.execute();
     // const cht = new ChangeHourlyTransaction(empId,[new TImecard(10,new Date())])
-    const cht = new ChangeHourlyTransaction(
-      empId,
-      new TimeCard(10, new Date())
-    );
+    const cht = new ChangeHourlyTransaction(empId, new TimeCard(5, new Date()));
     cht.execute();
 
     const emp = PayrollDatabase.getEmployee(empId);
@@ -198,7 +199,7 @@ describe("test add employee transaction", () => {
     const ps = emp?.getPaymentSchedule();
     // console.log("pc", pc);
     // console.log("ps", ps);
-    expect(pc?.calculatePay()).toEqual(1000 * 10);
+    expect(pc?.calculatePay()).toEqual(5000);
 
     // console.log("emp", emp);
     // console.log("ps", ps?.isPayday(new Date()));
@@ -358,11 +359,39 @@ describe("test add employee transaction", () => {
     validateHourlyPaycheck(empId, today, 0);
   });
 
+  it("testPaysinglehourlyemployeeoneTImeCard", () => {
+    const empId = 12;
+    const tx = new AddHourlyEmployee(empId, "Bob", "Tokyo", []);
+    tx.execute();
+    const yesterday = new Date(2025, 1, 27);
+    const today = new Date(2025, 1, 28);
+    const tc = new TimeCardTransaction(yesterday, 8, empId);
+    tc.execute();
+
+    const pt = new PaydayTransaction(today);
+    pt.execute();
+    validateHourlyPaycheck(empId, today, 8000);
+  });
+
+  it("testPaysinglehourlyemployeeOvertimeoneTImeCard2", () => {
+    const empId = 13;
+    // console.log("empId", empId);
+    const tx = new AddHourlyEmployee(empId, "Bob", "Tokyo", []);
+    tx.execute();
+    const yesterday = new Date(2025, 1, 27);
+    const today = new Date(2025, 1, 28);
+    const tc = new TimeCardTransaction(yesterday, 10, empId);
+    tc.execute();
+
+    const pt = new PaydayTransaction(today);
+    pt.execute();
+    validateHourlyPaycheck(empId, today, 10500);
+  });
+
   const validateHourlyPaycheck = (empId: number, date: Date, pay: number) => {
     const pc = PayrollDatabase.getPaycheck(empId);
+    // console.log("pc", pc);
     expect(pc).not.toBeNull;
-    console.log("getdeductionPay", pc?.getDuductions());
-    console.log("pay", pay);
     expect(pc?.getGrossPay()).toEqual(pay);
     expect(pc?.getNetPay()).toEqual(pay);
     expect(pc?.getDuductions()).toEqual(0);

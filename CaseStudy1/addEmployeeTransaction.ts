@@ -36,7 +36,7 @@ export abstract class AddEmployeeTransaction implements Transaction {
   execute(): void {
     const pc = this.getClassification();
     const ps = this.getSchedule();
-    const pm = new HoldMehod();
+    const pm = new HoldMehod(this.itsAddress);
     const emp = new Employee(this.empId, this.itsName, this.itsAddress);
 
     emp.setPaymentClassification(pc);
@@ -140,6 +140,7 @@ export class TimeCardTransaction implements Transaction {
       const pc = e.getPaymentClassification();
       if (pc instanceof HourlyClassification) {
         const hc = pc as HourlyClassification;
+        // console.log("addTImecard:", this.itsTime, this.itsDate);
         pc.addTimecard(new TimeCard(this.itsTime, this.itsDate));
       } else {
         throw new Error(
