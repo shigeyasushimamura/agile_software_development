@@ -86,7 +86,7 @@ export class Paycheck {
   private itsPeriodStartDate;
   private itsPayday;
   private grossPay = 0;
-  private duductions = 0;
+  private deductions = 0;
   private netPay = 0;
 
   constructor(startDate: Date, payday: Date) {
@@ -102,15 +102,15 @@ export class Paycheck {
   }
 
   getDuductions() {
-    return this.getDuductions;
+    return this.deductions;
   }
 
   setDeductions(p: number) {
-    this.duductions = p;
+    this.deductions = p;
   }
 
   getNetPay() {
-    return this.getNetPay;
+    return this.netPay;
   }
 
   setNetPay(p: number) {

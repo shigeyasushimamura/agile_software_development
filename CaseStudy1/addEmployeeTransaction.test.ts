@@ -347,4 +347,24 @@ describe("test add employee transaction", () => {
 
     expect(pc).toBeNull;
   });
+
+  it("testPaySingleHourlyEmployeeNoTimeCards", () => {
+    const empId = 11;
+    const tx = new AddHourlyEmployee(empId, "Bob", "Tokyo", []);
+    tx.execute();
+    const today = new Date(2025, 1, 28);
+    const pt = new PaydayTransaction(today);
+    pt.execute();
+    validateHourlyPaycheck(empId, today, 0);
+  });
+
+  const validateHourlyPaycheck = (empId: number, date: Date, pay: number) => {
+    const pc = PayrollDatabase.getPaycheck(empId);
+    expect(pc).not.toBeNull;
+    console.log("getdeductionPay", pc?.getDuductions());
+    console.log("pay", pay);
+    expect(pc?.getGrossPay()).toEqual(pay);
+    expect(pc?.getNetPay()).toEqual(pay);
+    expect(pc?.getDuductions()).toEqual(0);
+  };
 });
