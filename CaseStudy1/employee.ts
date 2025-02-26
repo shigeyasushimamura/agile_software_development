@@ -139,7 +139,7 @@ export class SalariedClassification implements PaymentClassification {
     this.itsSalary = salary;
   }
 
-  calculatePay(): number {
+  calculatePay(pc: Paycheck): number {
     return this.itsSalary;
   }
 }
@@ -159,7 +159,7 @@ export class CommissionedClassification implements PaymentClassification {
     return this.salesReceipt;
   }
 
-  calculatePay(): number {
+  calculatePay(pc: Paycheck): number {
     const total =
       this.basePay +
       this.salesReceipt.reduce((acrr, cur) => acrr + cur.getCommission(), 0);
@@ -197,21 +197,29 @@ export class HourlyClassification implements PaymentClassification {
     return this.timecards;
   }
 
-  calculatePay(): number {
-    console.log("start calculatePya");
-    console.log("timevard", this.timecards);
-    const total = this.timecards.reduce((accu, cur) => {
+  isInPayPeriod(timeCard: TimeCard, startDate: Date, endDate: Date) {
+    const timeCardDate = timeCard.getDate();
+
+    if (startDate <= timeCardDate && timeCardDate <= endDate) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  calculatePay(pc: Paycheck): number {
+    const total = this.timecards.reduce((accu, cur: TimeCard) => {
       let c = 0;
-      console.log("timework:", cur.getTime());
-      if (!this.isOverwork(cur.getTime())) {
-        console.log("not overwork!");
-        c = cur.getTime() * this.basePay;
-      } else {
-        console.log("overwork!");
-        const ot = cur.getTime() - this.WORKTIME;
-        c =
-          this.WORKTIME * this.basePay +
-          ot * this.basePay * this.OVERWORKPAYRATIO;
+
+      if (this.isInPayPeriod(cur, pc.getPeriodStartDate(), pc.getPayday())) {
+        if (!this.isOverwork(cur.getTime())) {
+          c = cur.getTime() * this.basePay;
+        } else {
+          const ot = cur.getTime() - this.WORKTIME;
+          c =
+            this.WORKTIME * this.basePay +
+            ot * this.basePay * this.OVERWORKPAYRATIO;
+        }
       }
 
       return accu + c;
@@ -238,6 +246,9 @@ export class TimeCard {
 
   getTime() {
     return this.time;
+  }
+  getDate() {
+    return this.date;
   }
 }
 
@@ -300,7 +311,8 @@ export class WeeklySchedule implements PaymentSchedle {
     const dayOfWeek = startDate.getDay();
     const diffToMonday = (dayOfWeek + 6) % 7;
     startDate.setDate(startDate.getDate() - diffToMonday);
-
+    // console.log("date", date);
+    // console.log("startDate:", startDate);
     return startDate;
   }
 }

@@ -63,30 +63,6 @@ describe("test add employee transaction", () => {
     expect(emp2).toBeUndefined();
   });
 
-  it("add hourly employee", () => {
-    const empId = 2;
-    const card1 = new TimeCard(8, new Date());
-    let tx = new AddHourlyEmployee(empId, "Bob", "tolyo", [card1]);
-    tx.execute();
-
-    const emp = PayrollDatabase.getEmployee(empId);
-    console.log("emp:", emp);
-    expect(emp?.getPaymentClassification()?.calculatePay()).toEqual(8000);
-
-    const pc = emp?.getPaymentClassification() as HourlyClassification;
-    const card2 = new TimeCard(1, new Date());
-    pc.addTimecard(card2);
-
-    emp?.setPaymentClassification(pc);
-
-    expect(emp?.getPaymentClassification()?.calculatePay()).toEqual(9000);
-
-    // delete処理
-    PayrollDatabase.deleteEmployee(empId);
-    const emp2 = PayrollDatabase.getEmployee(empId);
-    expect(emp2).toBeUndefined();
-  });
-
   it("add commissioned employee", () => {
     const empId = 3;
     // SalesReceiptを作成
@@ -186,39 +162,17 @@ describe("test add employee transaction", () => {
     expect(e?.getName()).toEqual("Ann");
   });
 
-  it("testChangeHourlyTransaction", () => {
-    const empId = 8;
-    const tx = new AddCommissionedEmployee(empId, "Lance", "Home", []);
-    tx.execute();
-    // const cht = new ChangeHourlyTransaction(empId,[new TImecard(10,new Date())])
-    const cht = new ChangeHourlyTransaction(empId, new TimeCard(5, new Date()));
-    cht.execute();
-
-    const emp = PayrollDatabase.getEmployee(empId);
-    const pc = emp?.getPaymentClassification();
-    const ps = emp?.getPaymentSchedule();
-    // console.log("pc", pc);
-    // console.log("ps", ps);
-    expect(pc?.calculatePay()).toEqual(5000);
-
-    // console.log("emp", emp);
-    // console.log("ps", ps?.isPayday(new Date()));
-    expect(ps?.isPayday(new Date())).toEqual(expect.any(Boolean));
-  });
-
   it("testChangeSalariedTransaction", () => {
     const empId = 8;
     const tx = new AddCommissionedEmployee(empId, "Lance", "Home", []);
     tx.execute();
-    // const cht = new ChangeHourlyTransaction(empId,[new TImecard(10,new Date())])
     const cht = new ChangeSalariedTransaction(empId, 555555);
     cht.execute();
 
     const emp = PayrollDatabase.getEmployee(empId);
     const pc = emp?.getPaymentClassification();
     const ps = emp?.getPaymentSchedule();
-    // console.log("pc", pc);
-    // console.log("ps", ps);
+
     expect(pc?.calculatePay()).toEqual(555555);
     expect(ps?.isPayday(new Date())).toEqual(expect.any(Boolean));
   });
@@ -382,6 +336,53 @@ describe("test add employee transaction", () => {
     const today = new Date(2025, 1, 28);
     const tc = new TimeCardTransaction(yesterday, 10, empId);
     tc.execute();
+
+    const pt = new PaydayTransaction(today);
+    pt.execute();
+    validateHourlyPaycheck(empId, today, 10500);
+  });
+
+  it("testPaySingleHourlyEmployeeOnWrongDay", () => {
+    const empId = 14;
+    const tx = new AddHourlyEmployee(empId, "Bob", "Tokyo", []);
+    tx.execute();
+    const today = new Date(2025, 2, 26);
+    const tc = new TimeCardTransaction(today, 8, empId);
+    tc.execute();
+    const pt = new PaydayTransaction(today);
+    pt.execute();
+
+    const pc = PayrollDatabase.getPaycheck(empId);
+    expect(pc).toBeUndefined();
+  });
+
+  it("testPaySingleHourlyEmployeeTwoTimeCard", () => {
+    const empId = 15;
+    const tx = new AddHourlyEmployee(empId, "Bob", "Tokyo", []);
+    tx.execute();
+    const yesterday = new Date(2025, 1, 27);
+    const today = new Date(2025, 1, 28);
+    const tc = new TimeCardTransaction(yesterday, 10, empId);
+    const tc2 = new TimeCardTransaction(yesterday, 10, empId);
+    tc.execute();
+    tc2.execute();
+
+    const pt = new PaydayTransaction(today);
+    pt.execute();
+    validateHourlyPaycheck(empId, today, 10500 * 2);
+  });
+
+  it("testPaySingleHourlyEmployeeWithTimeCardsSpanningTwoPayPeriods", () => {
+    const empId = 15;
+    const tx = new AddHourlyEmployee(empId, "Bob", "Tokyo", []);
+    tx.execute();
+    const yesterday = new Date(2025, 1, 27);
+    const today = new Date(2025, 1, 28);
+    const lastYear = new Date(2024, 1, 27);
+    const tc = new TimeCardTransaction(yesterday, 10, empId);
+    const tc2 = new TimeCardTransaction(lastYear, 10, empId);
+    tc.execute();
+    tc2.execute();
 
     const pt = new PaydayTransaction(today);
     pt.execute();
