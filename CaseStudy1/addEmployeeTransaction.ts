@@ -153,7 +153,7 @@ export class TimeCardTransaction implements Transaction {
   }
 }
 
-export class SalesReceiptTransaction {
+export class SalesReceiptTransaction implements Transaction {
   private itsDate: Date;
   private itsAmount: number;
   private itsEmpId: number;

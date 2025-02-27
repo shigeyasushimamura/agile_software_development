@@ -389,6 +389,8 @@ describe("test add employee transaction", () => {
     validateHourlyPaycheck(empId, today, 10500);
   });
 
+  it("");
+
   const validateHourlyPaycheck = (empId: number, date: Date, pay: number) => {
     const pc = PayrollDatabase.getPaycheck(empId);
     // console.log("pc", pc);
