@@ -47,6 +47,8 @@ describe("mediator", () => {
     npc3.enterArea();
     npc4.enterArea(); // 入れない
 
+    // console.log("npc1:", npc1.getPosition());
+
     npc1.updateState("running"); // 走り始める
     npc2.updateState("resting"); // 休憩
 
@@ -58,7 +60,7 @@ describe("mediator", () => {
 
     npc1.leaveArea();
     npc2.leaveArea();
-
+    // console.log("npc1:", npc1.getPosition());
     expect(npc1.getPosition()).toEqual({ x: 30, y: 40 });
   });
 });

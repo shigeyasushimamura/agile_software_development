@@ -285,7 +285,7 @@ describe("test add employee transaction", () => {
     pt.execute();
 
     const pc = PayrollDatabase.getPaycheck(empId);
-    console.log("pc:", pc);
+    // console.log("pc:", pc);
     expect(pc?.getGrossPay()).toEqual(10000);
   });
 
@@ -389,7 +389,27 @@ describe("test add employee transaction", () => {
     validateHourlyPaycheck(empId, today, 10500);
   });
 
-  it("");
+  it("testSalariedUnionMemberDues", () => {
+    const empId = 16;
+    const tx = new AddSalariedEmployee(empId, "Bob", "Tokyo", 100000);
+    tx.execute();
+
+    const memId = 16;
+    const cmt = new ChangeMemberTransaction(empId, memId, 100);
+    cmt.execute();
+
+    const today = new Date(2025, 1, 28);
+    const fridayNum = 4;
+
+    const pt = new PaydayTransaction(today);
+    pt.execute();
+    const pc = PayrollDatabase.getPaycheck(empId);
+
+    console.log("pc", pc);
+    expect(pc?.getGrossPay()).toEqual(100000);
+    expect(pc?.getDuductions()).toEqual(4 * 100);
+    expect(pc?.getNetPay()).toEqual(100000 - 100 * 4);
+  });
 
   const validateHourlyPaycheck = (empId: number, date: Date, pay: number) => {
     const pc = PayrollDatabase.getPaycheck(empId);

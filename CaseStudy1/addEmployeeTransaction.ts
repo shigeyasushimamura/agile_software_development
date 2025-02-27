@@ -217,13 +217,19 @@ export class AffiliciationFactory {
 
 export class UnionAffiliciation extends Affiliciation {
   private itsMemberId: number;
-  constructor(memberId: number) {
+  private itsDues: number;
+  constructor(memberId: number, dues: number) {
     super();
     this.itsMemberId = memberId;
+    this.itsDues = dues;
   }
 
   getMemberId() {
     return this.itsMemberId;
+  }
+
+  getDues() {
+    return this.itsDues;
   }
 
   calculateDeductions(pc: Paycheck): number | undefined {
@@ -429,10 +435,12 @@ export abstract class ChangeAffiliciationTransaction extends ChangeEmployeeTrans
 
 export class ChangeMemberTransaction extends ChangeAffiliciationTransaction {
   private itsMemberId: number;
+  private itsDues: number;
 
-  constructor(empId: number, memberId: number) {
+  constructor(empId: number, memberId: number, dues = 0) {
     super(empId);
     this.itsMemberId = memberId;
+    this.itsDues = dues;
   }
 
   recordMembership(e: Employee): void {
@@ -440,7 +448,7 @@ export class ChangeMemberTransaction extends ChangeAffiliciationTransaction {
   }
 
   getAffiliciation(): Affiliciation {
-    return new UnionAffiliciation(this.itsMemberId);
+    return new UnionAffiliciation(this.itsMemberId, this.itsDues);
   }
 }
 

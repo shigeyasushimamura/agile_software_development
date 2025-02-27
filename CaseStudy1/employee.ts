@@ -1,5 +1,13 @@
 import { Affiliciation } from "./addEmployeeTransaction.js";
 
+export const isBetween = (theDate: Date, startDate: Date, endDate: Date) => {
+  if (startDate <= theDate && theDate <= endDate) {
+    return true;
+  } else {
+    return false;
+  }
+};
+
 export class Employee {
   id: number;
   name: string;
@@ -197,21 +205,11 @@ export class HourlyClassification implements PaymentClassification {
     return this.timecards;
   }
 
-  isInPayPeriod(timeCard: TimeCard, startDate: Date, endDate: Date) {
-    const timeCardDate = timeCard.getDate();
-
-    if (startDate <= timeCardDate && timeCardDate <= endDate) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
   calculatePay(pc: Paycheck): number {
     const total = this.timecards.reduce((accu, cur: TimeCard) => {
       let c = 0;
 
-      if (this.isInPayPeriod(cur, pc.getPeriodStartDate(), pc.getPayday())) {
+      if (isBetween(cur.getDate(), pc.getPeriodStartDate(), pc.getPayday())) {
         if (!this.isOverwork(cur.getTime())) {
           c = cur.getTime() * this.basePay;
         } else {
