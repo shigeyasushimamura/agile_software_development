@@ -405,10 +405,10 @@ describe("test add employee transaction", () => {
     pt.execute();
     const pc = PayrollDatabase.getPaycheck(empId);
 
-    console.log("pc", pc);
+    // console.log("pc", pc);
     expect(pc?.getGrossPay()).toEqual(100000);
-    expect(pc?.getDuductions()).toEqual(4 * 100);
-    expect(pc?.getNetPay()).toEqual(100000 - 100 * 4);
+    expect(pc?.getDuductions()).toEqual(fridayNum * 100);
+    expect(pc?.getNetPay()).toEqual(100000 - 100 * fridayNum);
   });
 
   const validateHourlyPaycheck = (empId: number, date: Date, pay: number) => {

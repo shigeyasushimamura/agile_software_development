@@ -6,6 +6,7 @@ import {
   Employee,
   HoldMehod,
   HourlyClassification,
+  isBetween,
   MailMethod,
   MonthlySchedule,
   Paycheck,
@@ -233,16 +234,33 @@ export class UnionAffiliciation extends Affiliciation {
   }
 
   calculateDeductions(pc: Paycheck): number | undefined {
-    const startDateMills = pc.getPeriodStartDate().getTime();
-    const paydayMills = pc.getPayday().getTime();
+    const startDateMills = pc.getPeriodStartDate();
+    const paydayMills = pc.getPayday();
 
-    return Array.from(this.itsBillList.keys())
+    const totalCheck = Array.from(this.itsBillList.keys())
       .filter((date) => {
-        console.log("date", date);
-        const dateMills = date.getTime();
-        return dateMills >= startDateMills && dateMills <= paydayMills;
+        return isBetween(date, startDateMills, paydayMills);
       })
       .reduce((sum, date) => sum + (this.itsBillList.get(date) || 0), 0);
+
+    const serviceCharge =
+      this.itsDues *
+      this.numberOfFridaysInPayPeriod(startDateMills, paydayMills);
+
+    return totalCheck + serviceCharge;
+  }
+
+  numberOfFridaysInPayPeriod(payPeriodStart: Date, payPeriodEnd: Date) {
+    let fridays = 0;
+    let currentDay = new Date(payPeriodStart);
+
+    while (currentDay <= payPeriodEnd) {
+      if (currentDay.getDay() === 5) {
+        fridays++;
+      }
+      currentDay.setDate(currentDay.getDate() + 1);
+    }
+    return fridays;
   }
 }
 
