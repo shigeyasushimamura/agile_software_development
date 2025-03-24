@@ -70,11 +70,16 @@ export class ProductData {
 export class DB {
   private static itsProductData: Map<string, ProductData> = new Map();
   private static itsOrderData: Map<number, OrderData> = new Map();
+  private static itsItemData: Map<number, ItemData> = new Map();
 
   constructor() {}
   static storeProductData(pd: ProductData) {
     const id = pd.sku;
     this.itsProductData.set(id, pd);
+  }
+  static storeItemData(i: ItemData) {
+    const id = i.orderId;
+    this.itsItemData.set(id, i);
   }
 
   static getProductData(sku: string) {
@@ -82,9 +87,15 @@ export class DB {
     return result ? result : undefined;
   }
 
+  static getOrderData(oi: number) {
+    const result = this.itsOrderData.get(oi);
+    return result;
+  }
+
   static clear() {
     this.itsProductData = new Map();
     this.itsOrderData = new Map();
+    this.itsItemData = new Map();
   }
   static newOrder(customerId: string) {
     const newMaxOrderId = this.getMaxOrderId() + 1;
@@ -92,6 +103,19 @@ export class DB {
       newMaxOrderId,
       new OrderData(customerId, newMaxOrderId)
     );
+    return new OrderData(customerId, newMaxOrderId);
+  }
+
+  static getItemsForOrder(orderId: number): ItemData[] {
+    const result: ItemData[] = [];
+
+    for (const item of this.itsItemData.values()) {
+      if (item.orderId === orderId) {
+        result.push(item);
+      }
+    }
+
+    return result;
   }
 
   static getMaxOrderId() {
@@ -161,14 +185,14 @@ export class OrderData {
   }
 }
 
-export interface Order {
+export interface IOrder {
   getCustomerId(): string;
-  addItem(p: Product, quantity: number): void;
+  addItem(p: IProduct, quantity: number): void;
   total(): number;
 }
 
-export class OrderImp implements Order {
-  private itsItems: Map<Product, number> = new Map();
+export class OrderImp implements IOrder {
+  private itsItems: Map<IProduct, number> = new Map();
   private itsCustomerId!: string;
 
   getCustomerId() {
@@ -179,7 +203,7 @@ export class OrderImp implements Order {
     this.itsCustomerId = cusId;
   }
 
-  addItem(p: Product, q: number) {
+  addItem(p: IProduct, q: number) {
     this.itsItems.set(p, q);
   }
 
@@ -197,5 +221,65 @@ export class OrderImp implements Order {
     }
   }
 }
+export class OrderProxy implements IOrder {
+  public orderId!: number;
 
-export class OrderProxy implements Order {}
+  constructor(oId: number) {
+    this.orderId = oId;
+  }
+
+  getCustomerId(): string {
+    const od = DB.getOrderData(this.orderId);
+    if (!od) throw new Error(`OrderData not found for orderId=${this.orderId}`);
+    return od.customerId;
+  }
+
+  addItem(p: IProduct, quantity: number): void {
+    const id = new ItemData(this.orderId, quantity, p.getSku());
+    DB.storeItemData(id);
+  }
+
+  total(): number {
+    const customerId = this.getCustomerId();
+    const imp = new OrderImp(customerId);
+
+    // ★ DB.getItemsForOrder() がないのでここで安全に処理
+    const items = this.getItemsForOrderSafe();
+
+    for (const item of items) {
+      imp.addItem(new ProductProxy(item.sku), item.qty);
+    }
+
+    return imp.total();
+  }
+
+  // 仮で安全にアイテム一覧を取得する内部関数（DBの拡張がまだなら）
+  private getItemsForOrderSafe(): ItemData[] {
+    const items: ItemData[] = [];
+    for (const item of (DB as any).itsItemData?.values?.() || []) {
+      if (item.orderId === this.orderId) {
+        items.push(item);
+      }
+    }
+    return items;
+  }
+}
+
+export class ItemData {
+  public orderId!: number;
+  public qty!: number;
+  public sku = "junk";
+  constructor(orderId: number, qty: number, sku: string) {
+    this.orderId = orderId;
+    this.qty = qty;
+    this.sku = sku;
+  }
+  equals(o: Object) {
+    return (
+      o instanceof ItemData &&
+      this.orderId == o.orderId &&
+      this.qty == o.qty &&
+      this.sku == o.sku
+    );
+  }
+}
