@@ -33,3 +33,47 @@ export class HealSkill implements Extension {
     return "✨ Goblin heals itself!";
   }
 }
+
+class PoisonResistanceSkill implements Extension {
+  resistPoison(): string {
+    return "🛡️ Goblin resists poison!";
+  }
+}
+
+class WaterBreathingSkill implements Extension {
+  breatheUnderwater(): string {
+    return "🐠 Goblin breathes underwater!";
+  }
+}
+
+class Hero implements ExtensionHost {
+  private extensions = new Map<any, Extension>();
+
+  attack() {
+    return "Hero strikes with a sword!";
+  }
+
+  addExtension<T extends Extension>(ext: T): void {
+    this.extensions.set(ext.constructor, ext);
+  }
+
+  getExtension<T extends Extension>(ctor: new () => T): T | undefined {
+    return this.extensions.get(ctor) as T;
+  }
+}
+
+class Pet implements ExtensionHost {
+  private extensions = new Map<any, Extension>();
+
+  action() {
+    return "Pet looks around...";
+  }
+
+  addExtension<T extends Extension>(ext: T): void {
+    this.extensions.set(ext.constructor, ext);
+  }
+
+  getExtension<T extends Extension>(ctor: new () => T): T | undefined {
+    return this.extensions.get(ctor) as T;
+  }
+}
