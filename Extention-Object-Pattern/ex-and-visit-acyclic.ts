@@ -1,7 +1,14 @@
+// 全ての拡張スキルの親
+interface Extension {}
+
 interface BaseSkillVisitor {}
 
 interface FireBreathVisitor extends BaseSkillVisitor {
   visitFireBreath(skill: FireBreath): void;
+}
+
+interface HealSkillVisitor extends BaseSkillVisitor {
+  visitHealSkill(skill: HealSkill): void;
 }
 
 class FireBreath implements Extension {
@@ -9,6 +16,12 @@ class FireBreath implements Extension {
     if ("visitFireBreath" in v) {
       (v as FireBreathVisitor).visitFireBreath(this);
     }
+  }
+}
+
+export class HealSkill implements Extension {
+  heal(): string {
+    return "✨ Goblin heals itself!";
   }
 }
 

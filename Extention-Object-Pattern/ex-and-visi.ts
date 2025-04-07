@@ -51,20 +51,20 @@ class WaterBreathingSkill implements Extension {
 class SkillReportVisitor implements SkillVisitor {
   private skills: string[] = [];
 
-  visit(skill: FireBreath): void {
-    this.skills.push("Fire Breath");
-  }
-
-  visit(skill: HealSkill): void {
-    this.skills.push("Heal");
-  }
-
-  visit(skill: PoisonResistanceSkill): void {
-    this.skills.push("Poison Resistance");
-  }
-
-  visit(skill: WaterBreathingSkill): void {
-    this.skills.push("Water Breathing");
+  visit(skill: FireBreath): void;
+  visit(skill: HealSkill): void;
+  visit(skill: PoisonResistanceSkill): void;
+  visit(skill: WaterBreathingSkill): void;
+  visit(skill: any): void {
+    if (skill instanceof FireBreath) {
+      this.skills.push("Fire Breath");
+    } else if (skill instanceof HealSkill) {
+      this.skills.push("Heal");
+    } else if (skill instanceof PoisonResistanceSkill) {
+      this.skills.push("Poison Resistance");
+    } else if (skill instanceof WaterBreathingSkill) {
+      this.skills.push("Water Breathing");
+    }
   }
 
   getReport(): string[] {
